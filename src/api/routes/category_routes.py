@@ -10,9 +10,17 @@ router = APIRouter(prefix="/categories", tags=["Categories"])
 def get_category_service(uow: IUnitOfWork = Depends(get_uow)) -> CategoryService:
     return CategoryService(uow)
 
+from sqlalchemy.exc import IntegrityError
+
 @router.post("", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED)
 def create_category(category: CategoryCreate, service: CategoryService = Depends(get_category_service)):
-    return service.create(category)
+    try:
+        return service.create(category)
+    except IntegrityError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A category with this name already exists."
+        )
 
 @router.get("", response_model=List[CategoryResponse])
 def get_categories(skip: int = 0, limit: int = 100, service: CategoryService = Depends(get_category_service)):
